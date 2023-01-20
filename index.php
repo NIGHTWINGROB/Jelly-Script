@@ -1,69 +1,51 @@
+	<?php
 
-<html>
-    <body>
-    
-       <form action = "<?php $_PHP_SELF ?>" method = "GET">
-          Name: <input type = "text" id = "address" name = "address" />
-          <input type="button" name="submit" />
-       </form>
-       
-    </body>
- </html>
+	require_once(dirname(__FILE__) . '/cfx_loaders/system.Loaders.php');
+	$curl_handle=curl_init();
+	
+	// get product delivery address
+		$delivery_latitude = 31.128340122952533;
+		$delivery_longitude = -97.7334447;
 
-<?php
+		// Tomtom API endpoint and key
+		$api_endpoint = "http://api.tomtom.com/search/2/search/ink.json";
+		$api_key = "Ult26hJrDSqGRAY2qj9pPIRxrhfAcPc7";
 
-require 'vendor/autoload.php';
+		// parameters for API call
+		$params = array(
+			"key" => $api_key,
+			"lat" => "lat=" . $delivery_latitude,
+			"lon" => "lon=" . $delivery_longitude,
+			"radius" => "=1000",
+			"limit" => "=5"
+			
+		);
 
-use Dotenv\Dotenv;
+		// create a cURL handle
+		$ch = curl_init();
 
-$dotenv = Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+		// set API endpoint and parameters
+		curl_setopt($ch, CURLOPT_URL, $api_endpoint."?".http_build_query($params));
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-const BASE_URL = 'https://api.tomtom.com/search/2/search.json';
+		// execute API call and get response
+		$response = curl_exec($ch);
 
-$apiKey=$_ENV['API_KEY'];
+		// decode response as JSON
+		$delivery_order_data = json_decode($response, true);
+		var_dump($delivery_order_data);
 
-$queryString = http_build_query([
-   'radius' => 150,
-   'minFuzzyLevel' => 1,
-   'maxFuzzyLevel'=> 0,
-   'view' => 'Unified',
-   'relatedPois' => 'all',
-   'api_key' => $apiKey,
+		// check for errors
+		if(curl_errno($ch)) {
+			echo "Error: " . curl_error($ch);
+		} else {
+			// display points of interest
+			echo "<h2>Points of Interest</h2>";
+			foreach($delivery_order_data['results'] as $result) {
+				echo "<p>" . $result['poi']['name'] . "</p>";
+			}
+		}
 
-]);
-
-$requestUri = sprintf(
-   '%s/rest/?%s',
-   BASE_URL,
-   $queryString
-);
-
-$ch = curl_init();
-
-$url = "https://api.tomtom.com/search/2/search.json?radius=150&minFuzzyLevel=1&maxFuzzyLevel=2&view=Unified&relatedPois=all&key={7RrTPGdvxUKIQEyNkJTB3A3Kv0pquUn5}";
-
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_URL, $requestUri);
-curl_setopt($ch, CURLOPT_SSH_COMPRESSION, true);
-curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_URL => $requestUri
-]);
-
-$result = curl_exec($ch);
-
-if($e = curl_error($ch)) {
-    echo $e;
-}
-else {
-    $decoded = json_decode($resp);
-    print_r($decoded);
-}
-
-curl_close($ch);
-
-
-
-?>
-
+		// close cURL handle
+		curl_close($ch);
+	?>
